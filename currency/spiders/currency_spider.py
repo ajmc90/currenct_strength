@@ -1,14 +1,22 @@
 # python -m scrapy runspider currency.py
 import scrapy
 from datetime import datetime
+import time
+import csv
+import os.path
+
 class CurrencySpider(scrapy.Spider):
     name = 'currency'
     start_urls = ['http://www.livecharts.co.uk/currency-strength.php']
 
-    def parse(self, response):
+    def getCurrencyData(self, response):
         now = datetime.now()
+        list = []
+        to_check = ['USD', 'EURO', 'CAD', 'JPY']
         for currency in response.css('#rate-outercontainer'):
             currency_name = currency.css('#map-innercontainer-symbol::text').get()
+            if not currency_name in to_check :
+                continue
             currenct_str = 1
             weak3 = True if currency.css('#map-innercontainer-weak3') else False
             weak2 = True if currency.css('#map-innercontainer-weak2') else False
@@ -30,4 +38,29 @@ class CurrencySpider(scrapy.Spider):
             else:
                 currenct_str = 1
 
-            yield {'date': now.strftime("%d/%m/%Y %H:%M:%S"), 'currency': currency_name, 'strength': currenct_str}
+            list.append({'date': now.strftime("%d/%m/%Y %H:%M:%S"), 'currency': currency_name, 'strength': currenct_str})
+        return list
+
+    def parse(self, response):
+        data = self.getCurrencyData(response)
+        now = datetime.now()
+        # f = open(now.strftime("%d-%m-%Y")+"_currency.csv", "a")
+        # f.write(str(data))
+        # f.close()
+        filename = now.strftime("%d-%m-%Y")+"_currency.csv"
+        self.write_csv(data, filename)
+
+        return data
+
+    def write_csv(self, data, filename):
+        if(not os.path.exists(filename)):
+            with open(filename, 'w+', newline='') as outf:
+                writer = csv.DictWriter(outf, data[0].keys())
+                writer.writeheader()
+                for row in data:
+                    writer.writerow(row)
+        else:
+            with open(filename, 'a+', newline='') as outf:
+                writer = csv.DictWriter(outf, data[0].keys())
+                for row in data:
+                    writer.writerow(row)
