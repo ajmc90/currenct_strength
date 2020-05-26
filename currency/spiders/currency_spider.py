@@ -1,10 +1,12 @@
 # python -m scrapy runspider currency.py
 import scrapy
-class BlogSpider(scrapy.Spider):
+from datetime import datetime
+class CurrencySpider(scrapy.Spider):
     name = 'currency'
     start_urls = ['http://www.livecharts.co.uk/currency-strength.php']
 
     def parse(self, response):
+        now = datetime.now()
         for currency in response.css('#rate-outercontainer'):
             currency_name = currency.css('#map-innercontainer-symbol::text').get()
             currenct_str = 1
@@ -28,4 +30,4 @@ class BlogSpider(scrapy.Spider):
             else:
                 currenct_str = 1
 
-            yield {'currency': currency_name, 'strength': currenct_str}
+            yield {'date': now.strftime("%d/%m/%Y %H:%M:%S"), 'currency': currency_name, 'strength': currenct_str}
